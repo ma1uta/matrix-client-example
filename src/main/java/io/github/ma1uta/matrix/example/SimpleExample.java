@@ -12,15 +12,15 @@ public class SimpleExample {
         StandaloneClient mxClient = new StandaloneClient.Builder().domain(domain).build();
 
         // login
-        String userId = mxClient.auth().login(localpart, password).join().getUserId();
+        String userId = mxClient.auth().login(localpart, password).getUserId();
 
         // set display name via profile api
-        System.out.println(mxClient.profile().showDisplayName(userId).join());
+        System.out.println(mxClient.profile().showDisplayName(userId));
 
         // retrieve all joined rooms
-        mxClient.room().joinedRooms().join().getJoinedRooms().forEach(System.out::println);
+        mxClient.room().joinedRooms().getJoinedRooms().forEach(System.out::println);
 
         // logout
-        mxClient.auth().logout().join();
+        mxClient.auth().logout();
     }
 }

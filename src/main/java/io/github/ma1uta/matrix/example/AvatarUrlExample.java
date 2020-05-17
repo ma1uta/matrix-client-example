@@ -5,51 +5,52 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.nio.file.StandardCopyOption;
 
 public class AvatarUrlExample {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AvatarUrlExample.class);
 
     public static void main(String[] args) {
-        String mxid = "@travis:t2l.io";
-        String domain = "ru-matrix.org";
-        String avatarFile = "avatar.jpg";
-        Pattern pattern = Pattern.compile("mxc://(.*)/(.*)");
-        Path avatarPath = Paths.get(avatarFile);
+        var mxid = "@travis:t2l.io";
+        var domain = "ru-matrix.org";
 
-        StandaloneClient mxClient = new StandaloneClient.Builder().domain(domain).build();
+        var mxClient = new StandaloneClient.Builder().domain(domain).build();
 
-        mxClient.profile().showAvatarUrl(mxid).thenAccept(avatar -> {
-            String mxcUrl = avatar.getAvatarUrl();
-            System.out.println(mxcUrl);
-
-            Matcher matcher = pattern.matcher(mxcUrl);
-            if (matcher.matches()) {
-                String serverName = matcher.group(1);
-                String mxcid = matcher.group(2);
-                mxClient.content().download(serverName, mxcid, true).thenAccept(stream -> saveAvatarFile(stream, avatarPath));
-            } else {
-                LOGGER.warn("Wrong format: {}", mxcUrl);
-            }
-        });
-
+        asyncExample(mxid, mxClient);
+        syncExample(mxid, mxClient);
     }
 
-    private static void saveAvatarFile(InputStream stream, Path avatarPath) {
+    private static void syncExample(String mxid, StandaloneClient mxClient) {
+        var avatar = mxClient.profile().showAvatarUrl(mxid);
+        var mxcUrl = avatar.getAvatarUrl();
+        System.out.println(mxcUrl);
+
+        var content = mxClient.content().download(mxcUrl, true);
         try {
-            if (!Files.exists(avatarPath)) {
-                Files.createFile(avatarPath);
-            }
-            Files.write(avatarPath, stream.readAllBytes());
+            Files.copy(content.getInputStream(), Path.of(content.getFilename()), StandardCopyOption.REPLACE_EXISTING);
             LOGGER.info("Done");
         } catch (IOException e) {
             LOGGER.error("Unable to write avatar to file", e);
         }
+    }
+
+    private static void asyncExample(String mxid, StandaloneClient mxClient) {
+        mxClient.profileAsync().showAvatarUrl(mxid).thenAccept(avatar -> {
+            var mxcUrl = avatar.getAvatarUrl();
+            System.out.println(mxcUrl);
+
+            mxClient.contentAsync().download(mxcUrl, true)
+                .thenAccept(content -> {
+                    try {
+                        Files.copy(content.getInputStream(), Path.of(content.getFilename()), StandardCopyOption.REPLACE_EXISTING);
+                        LOGGER.info("Done");
+                    } catch (IOException e) {
+                        LOGGER.error("Unable to write avatar to file", e);
+                    }
+                });
+        });
     }
 }

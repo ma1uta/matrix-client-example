@@ -28,15 +28,14 @@ public class RegistrationExample {
 
     private static void syncRegistration(StandaloneClient mxClient, RegisterRequest registerRequest) {
         try {
-            LoginResponse loginResponse = mxClient.account().register(registerRequest).join();
-            processLogin(loginResponse);
+            processLogin(mxClient.account().register(registerRequest));
         } catch (Exception e) {
             processException(e);
         }
     }
 
     private static void asyncRegistration(StandaloneClient mxClient, RegisterRequest registerRequest) {
-        mxClient.account().register(registerRequest).whenComplete((loginResponse, throwable) -> {
+        mxClient.accountAsync().register(registerRequest).whenComplete((loginResponse, throwable) -> {
             if (throwable != null) {
                 processException(throwable);
             }
